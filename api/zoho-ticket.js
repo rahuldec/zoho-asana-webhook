@@ -115,7 +115,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: "ignored", reason: "sender not whitelisted" });
   }
 
-  const taskName = subject || "(No Subject)";
+  const fields = extractTableFields(body.html || "");
+  const taskName = fields["Institute Name"] || subject || "(No Subject)";
   const notes = buildNotes(body);
 
   const resp = await fetch("https://app.asana.com/api/1.0/tasks", {
