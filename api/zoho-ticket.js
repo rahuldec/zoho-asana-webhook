@@ -13,18 +13,17 @@ export default async function handler(req, res) {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
 
-  const { fromAddress, subject, content, summary, htmlContent, textContent, plainContent, body: bodyText, mailContent } = body;
+  const { fromAddress, subject } = body;
 
   console.log("Zoho payload keys:", JSON.stringify(Object.keys(body)));
-  console.log("Zoho payload:", JSON.stringify(body));
 
   if ((fromAddress || "").toLowerCase().trim() !== TICKET_SENDER) {
     return res.status(200).json({ status: "ignored", reason: "sender not whitelisted" });
   }
 
   const taskName = subject || "(No Subject)";
-  const emailBody = content || summary || htmlContent || textContent || plainContent || bodyText || mailContent || "";
-  const notes = `From: ${fromAddress}\n\n${emailBody}`.trim();
+  // Dump full payload so we can see what field Zoho uses for email body
+  const notes = `DEBUG PAYLOAD:\n${JSON.stringify(body, null, 2)}`;
 
   const resp = await fetch("https://app.asana.com/api/1.0/tasks", {
     method: "POST",
