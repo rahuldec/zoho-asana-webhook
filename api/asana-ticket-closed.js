@@ -53,7 +53,7 @@ function buildHtml(instituteName, refNumber) {
   We are happy to inform you that your support ticket has been reviewed and closed by our team.</p>
   <br>
   <div class="task-box">
-    <p class="label">Ticket Reference</p>
+    <p class="label">Request Description</p>
     <p class="task-name">${esc(refNumber || instituteName)}</p>
   </div>
   <br>
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
       }
 
       const instituteName = task.name || parseField(notes, "Institute Name") || "there";
-      const refNumber = parseField(notes, "Ticket ID") || parseField(notes, "Reference");
+      const refNumber = parseField(notes, "Request Description") || parseField(notes, "Ticket ID");
 
       await sendEmail(clientEmail, instituteName, refNumber);
       sent.push({ gid, email: clientEmail });
