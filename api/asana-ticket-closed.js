@@ -57,7 +57,6 @@ function buildHtml(instituteName, refNumber) {
     <p class="task-name">${esc(refNumber || instituteName)}</p>
   </div>
   <br>
-  <p class="message">If your issue has not been fully resolved or you have further queries, please raise a new ticket and our team will get back to you promptly.</p>
   <hr class="divider">
   <div class="footer">
     <p>Automated Email Alert from <a href="https://okiedokiepay.com/" style="color:${ACCENT};text-decoration:none;">Okie Dokie</a></p>
