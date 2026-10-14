@@ -58,14 +58,6 @@ function buildHtml(instituteName, refNumber) {
   </div>
   <br>
   <p class="message">If your issue has not been fully resolved or you have further queries, please raise a new ticket and our team will get back to you promptly.</p>
-  <br>
-  <p style="text-align:center;">
-    <a href="https://data.odpay.in/odforms1/form/BugTracker/entry/d440o1-7vgtXZx634O4D0odHiZZ6oz0ZP55zaxxWf8M"
-       style="display:inline-block;background:${ACCENT};color:#ffffff;font-size:14px;font-weight:600;
-              text-decoration:none;padding:12px 28px;border-radius:8px;letter-spacing:.01em;">
-      Raise a New Ticket
-    </a>
-  </p>
   <hr class="divider">
   <div class="footer">
     <p>Automated Email Alert from <a href="https://okiedokiepay.com/" style="color:${ACCENT};text-decoration:none;">Okie Dokie</a></p>
