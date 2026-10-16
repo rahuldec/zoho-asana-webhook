@@ -75,19 +75,32 @@ function parseField(notes, field) {
   return m ? m[1].trim() : null;
 }
 
-async function sendEmail(toAddress, instituteName, refNumber) {
+async function fetchUserEmail(userGid) {
+  if (!userGid) return null;
+  const r = await fetch(`${ASANA_API}/users/${userGid}?opt_fields=email,name`, {
+    headers: { Authorization: `Bearer ${ASANA_TOKEN}` },
+  });
+  const d = (await r.json().catch(() => ({}))).data || {};
+  return d.email || null;
+}
+
+async function sendEmail(toAddress, instituteName, refNumber, ccAddress) {
+  const payload = {
+    from: { address: process.env.ZEPTOMAIL_SENDER || "alerts@okiedokie.app", name: "Okie Dokie Support" },
+    to: [{ email_address: { address: toAddress } }],
+    subject: "Your Support Ticket Has Been Resolved",
+    htmlbody: buildHtml(instituteName, refNumber),
+  };
+  if (ccAddress) {
+    payload.cc = [{ email_address: { address: ccAddress } }];
+  }
   const r = await fetch("https://api.zeptomail.in/v1.1/email", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: process.env.ZEPTOMAIL_TOKEN || "",
     },
-    body: JSON.stringify({
-      from: { address: process.env.ZEPTOMAIL_SENDER || "alerts@okiedokie.app", name: "Okie Dokie Support" },
-      to: [{ email_address: { address: toAddress } }],
-      subject: "Your Support Ticket Has Been Resolved",
-      htmlbody: buildHtml(instituteName, refNumber),
-    }),
+    body: JSON.stringify(payload),
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`ZeptoMail ${r.status}: ${JSON.stringify(d)}`);
@@ -125,14 +138,15 @@ export default async function handler(req, res) {
 
   const events = (req.body && req.body.events) || [];
 
-  const changedGids = [
-    ...new Set(
-      events
-        .filter(ev => ev.resource?.resource_type === "task" && ev.resource?.gid)
-        .map(ev => ev.resource.gid)
-    ),
-  ];
+  // Build map of task GID → user GID who triggered the event
+  const taskUserMap = {};
+  for (const ev of events) {
+    if (ev.resource?.resource_type === "task" && ev.resource?.gid) {
+      taskUserMap[ev.resource.gid] = taskUserMap[ev.resource.gid] || ev.user?.gid;
+    }
+  }
 
+  const changedGids = Object.keys(taskUserMap);
   if (!changedGids.length) return res.status(200).json({ skipped: true });
 
   const sent = [];
@@ -155,10 +169,11 @@ export default async function handler(req, res) {
 
       const instituteName = task.name || parseField(notes, "Institute Name") || "there";
       const refNumber = parseField(notes, "Request Description") || parseField(notes, "Ticket ID");
+      const closerEmail = await fetchUserEmail(taskUserMap[gid]);
 
-      await sendEmail(clientEmail, instituteName, refNumber);
-      sent.push({ gid, email: clientEmail });
-      console.log("Sent closure email for task", gid, "to", clientEmail);
+      await sendEmail(clientEmail, instituteName, refNumber, closerEmail);
+      sent.push({ gid, email: clientEmail, cc: closerEmail });
+      console.log("Sent closure email for task", gid, "to", clientEmail, closerEmail ? `cc: ${closerEmail}` : "");
     } catch (err) {
       console.error("Error processing task", gid, err.message);
     }
