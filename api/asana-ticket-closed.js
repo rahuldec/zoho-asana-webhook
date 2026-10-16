@@ -66,7 +66,7 @@ function buildHtml(instituteName, refNumber) {
 
 function parseClientEmail(notes) {
   if (!notes) return null;
-  const m = notes.match(/^Email:\s*(.+@.+\..+)$/im);
+  const m = notes.match(/^Email:\s*(?:mailto:)?(.+@.+\..+)$/im);
   return m ? m[1].trim() : null;
 }
 
