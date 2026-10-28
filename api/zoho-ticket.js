@@ -140,6 +140,41 @@ async function lookupAssigneeName(instituteName) {
   return null;
 }
 
+async function uploadAttachments(taskGid, attachments) {
+  if (!Array.isArray(attachments) || !attachments.length) return 0;
+  let uploaded = 0;
+  for (const att of attachments) {
+    const name = att.name || att.fileName || att.filename || "attachment";
+    const content = att.content || att.fileContent || att.data;
+    const mimeType = att.mimeType || att.contentType || att.type || "application/octet-stream";
+    if (!content) {
+      console.log("Skipping attachment with no content:", name);
+      continue;
+    }
+    try {
+      const bytes = Buffer.from(content, "base64");
+      const form = new FormData();
+      form.append("parent", taskGid);
+      form.append("file", new Blob([bytes], { type: mimeType }), name);
+      const r = await fetch(`${ASANA_API}/attachments`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${ASANA_TOKEN}` },
+        body: form,
+      });
+      if (r.ok) {
+        uploaded++;
+        console.log("Uploaded attachment:", name, "to task", taskGid);
+      } else {
+        const e = await r.text();
+        console.error("Attachment upload failed for", name, ":", r.status, e);
+      }
+    } catch (e) {
+      console.error("Attachment upload error for", name, ":", e.message);
+    }
+  }
+  return uploaded;
+}
+
 async function findAsanaUserGid(name) {
   if (!name) return null;
   try {
@@ -201,5 +236,11 @@ export default async function handler(req, res) {
 
   const { data } = await resp.json();
   console.log("Created Asana task", data.gid, "for ticket:", taskName, assigneeGid ? `assigned to ${assigneeName}` : "(unassigned)");
-  return res.status(200).json({ status: "ok", task_gid: data.gid, assignee: assigneeName || null });
+
+  // Upload email attachments to the Asana task
+  const attachments = body.attachments || body.Attachments || [];
+  const uploadedCount = await uploadAttachments(data.gid, attachments);
+  if (uploadedCount) console.log(`Uploaded ${uploadedCount} attachment(s) to task`, data.gid);
+
+  return res.status(200).json({ status: "ok", task_gid: data.gid, assignee: assigneeName || null, attachments_uploaded: uploadedCount });
 }
